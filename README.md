@@ -1,5 +1,45 @@
 # ai-chatbot-service
 
+## 빠른 시작 (Quick Start)
+
+사전 임베딩된 증권 도메인 문서가 포함된 PostgreSQL 컨테이너와 앱을 한 번에 실행합니다.
+
+**사전 요구사항:** Docker, Docker Compose, Gemini API Key
+
+```bash
+# 1. 저장소 클론
+git clone <repo-url>
+cd ai-chatbot-service
+
+# 2. Gemini API Key 설정
+echo "GEMINI_API_KEY=your-api-key" > .env
+
+# 3. 전체 실행 (DB + 앱 빌드 및 시작)
+docker compose up --build
+```
+
+앱이 시작되면 `http://localhost:8080`으로 API를 사용할 수 있습니다.
+
+**PostgreSQL만 실행하고 앱은 로컬에서 개발하는 경우:**
+```bash
+# DB만 실행 (초기 데이터 자동 로드)
+docker compose up postgres
+
+# 앱 로컬 실행
+GEMINI_API_KEY=your-api-key ./gradlew bootRun
+```
+
+**초기 계정:**
+| 이메일 | 비밀번호 | 역할 |
+|---|---|---|
+| member@test.com | member1234 | MEMBER |
+| admin@test.com | admin1234 | ADMIN |
+
+> `docker/initdb/01_dump.sql`에 증권 도메인 문서 청크 6개(3072차원 임베딩 포함)가 저장되어 있어,
+> 별도 임베딩 작업 없이 바로 RAG 기반 대화를 테스트할 수 있습니다.
+
+---
+
 ## 문제 상황 파악 
 
 1. 잠재 고객사에게 긴급 시연이 목표인 상황 - 시연의 목표는 api를 통해 ai를 활용할 수 있음, 향후 자사의 대외비 문서 학습 고려 
@@ -44,13 +84,14 @@
     - [x] AI API KEY 넣기
     - [x] CLAUDE.md 업데이트 
 - [x] postgresql과 spring 띄울 수 있는 docker compose 만들기 하나의 서버에서 2개 실행되게 (시연용이니)
-    - [ ] pgvector도 지원 
-    - [ ] 예시 문서(/docs) 넣기, 예시 문서 chunking 및 embedding해서 저장 
-    - [ ] 문서를 바탕으로 실제로 답변하는지 확인 
+    - [x] pgvector도 지원 
+    - [x] 예시 문서(/docs) 넣기, 예시 문서 chunking 및 embedding해서 저장 
+    - [x] 문서를 바탕으로 실제로 답변하는지 확인 
 
-- [ ] 사용자 피드백 관리 기능 구현 -> 검증 (userId는 임시로 처리해두기)
-- [ ] 분석 및 보고 기능 구현 -> 검증 
-- [ ] 사용자 관리 및 인증 기능 구현 -> 검증 
+- [x] 사용자 피드백 관리 기능 구현 -> 검증 (userId는 임시로 처리해두기)
+- [x] 분석 및 보고 기능 구현 -> 검증 
+- [x] 사용자 관리 및 인증 기능 구현 -> 검증 
+
 - [ ] 프론트 구현 (대화 -> 피드백 -> 분석 -> 회원)
 - [ ] 프론트 통한 E2E 테스트 
 - [ ] ai 통한 전체 프로젝트 검증 
@@ -61,6 +102,18 @@
 - postgres 15.8 + pgvector / kotlin 1.9.25 / spring boot 3.3.6
 - Gemini API: `gemini-3.5-flash` (채팅), `gemini-embedding-2` (임베딩, 3072차원)
 - Java 21 (gradle.properties에 JAVA_HOME 설정됨)
+
+## 과제 구현 후기
+
+- 과제 분석 방법
+    - 요구사항 꼼꼼히 읽어보며 목표를 달성하기 위한 수단들 생각
+    - 실제 시연에서 해당 서비스가 유용하다는 걸 어떻게 하면 입증할 수 있을까를 생각
+    - 스스로 한 설계에서 놓친 부분은 없는지 확인하기 위해 ai를 통해 점검 및 개선
+- AI 활용 방법
+    - claude code cli를 주로 사용
+    - /grill-me skill을 통해 가장 핵심 기능인 대화 관리 기능을 제한된 시간 내에 의도한 대로 구현함
+    - git worktree를 사용하여 각종 기능 구현 병렬 처리 
+    - 
 
 ## 빌드 & 실행
 
