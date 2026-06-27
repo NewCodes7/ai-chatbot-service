@@ -42,4 +42,5 @@ CREATE TABLE document_chunks (
     chunk_index INT
 );
 
-CREATE INDEX ON document_chunks USING hnsw (embedding vector_cosine_ops);
+-- HNSW index supports max 2000 dims; gemini-embedding-2 is 3072 dims.
+-- Sequential scan is sufficient for demo scale. Add IVFFlat after pgvector upgrade if needed.

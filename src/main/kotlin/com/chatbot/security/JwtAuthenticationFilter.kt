@@ -27,7 +27,7 @@ class JwtAuthenticationFilter(
             val user = userRepository.findById(userId).orElse(null)
             if (user != null) {
                 val auth = UsernamePasswordAuthenticationToken(
-                    userId,
+                    user.email,
                     null,
                     listOf(SimpleGrantedAuthority("ROLE_${user.role.name}"))
                 )

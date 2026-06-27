@@ -7,6 +7,7 @@ import com.chatbot.domain.user.repository.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 
@@ -18,6 +19,11 @@ class DataSeeder(
 ) : ApplicationRunner {
 
     private val log = LoggerFactory.getLogger(javaClass)
+
+    // Korean/mixed text approximation: 1 token ≈ 2 characters
+    private val CHUNK_CHARS = 512 * 2          // ~1024 chars per chunk
+    private val OVERLAP_CHARS = (CHUNK_CHARS * 0.20).toInt()  // ~205 chars overlap
+    private val STRIDE_CHARS = CHUNK_CHARS - OVERLAP_CHARS     // ~819 chars stride
 
     override fun run(args: ApplicationArguments) {
         seedUsers()
@@ -38,25 +44,88 @@ class DataSeeder(
 
     private fun seedDocumentChunks() {
         if (ragService.countChunks() > 0) return
-        log.info("Seeding document chunks with Gemini embeddings (may take a moment)...")
+        log.info("Seeding document chunks from classpath:docs/ (chunk=${CHUNK_CHARS}chars, overlap=${OVERLAP_CHARS}chars)...")
 
-        val chunks = listOf(
-            "코스피(KOSPI)는 한국거래소에 상장된 모든 종목의 시가총액을 기준으로 산출하는 종합주가지수입니다. 1980년 1월 4일을 기준시점(100포인트)으로 하며, 한국 주식시장의 전반적인 흐름을 나타내는 대표 지수입니다." to "kospi_overview",
-            "주가수익비율(PER, Price-Earnings Ratio)은 주가를 주당순이익(EPS)으로 나눈 값으로, 기업의 이익 대비 주가 수준을 나타냅니다. PER이 낮을수록 상대적으로 저평가된 것으로 볼 수 있으나, 업종별 특성을 함께 고려해야 합니다." to "per_explanation",
-            "분산투자는 다양한 자산이나 종목에 투자금을 나눠 리스크를 줄이는 전략입니다. 상관관계가 낮은 자산들로 포트폴리오를 구성할수록 전체 변동성이 감소합니다. '달걀을 한 바구니에 담지 말라'는 격언이 이 원칙을 잘 설명합니다." to "diversification",
-            "채권은 정부, 지방자치단체, 기업 등이 자금 조달을 위해 발행하는 확정이자부 증권입니다. 만기와 이자율이 미리 정해져 있어 주식보다 안정적이지만, 금리 변동에 따라 채권 가격이 반대 방향으로 움직이는 특성이 있습니다." to "bond_basics",
-            "ETF(Exchange Traded Fund)는 특정 지수를 추종하며 주식처럼 거래소에서 매매할 수 있는 펀드입니다. 낮은 보수, 높은 분산효과, 실시간 거래 가능 등의 장점으로 개인 투자자들에게 인기가 높습니다. 코스피200 ETF, S&P500 ETF 등이 대표적입니다." to "etf_overview"
-        )
+        val chunks = loadChunksFromDocs()
+        if (chunks.isEmpty()) {
+            log.warn("No document chunks found — check src/main/resources/docs/")
+            return
+        }
 
+        log.info("Found ${chunks.size} chunks from ${chunks.map { it.second }.distinct().size} documents")
         chunks.forEachIndexed { index, (text, source) ->
             try {
                 val embedding = ragService.embedText(text)
                 ragService.insertChunk(text, embedding, source, index)
-                log.info("  Embedded chunk ${index + 1}/${chunks.size}: $source")
+                log.info("  Embedded chunk ${index + 1}/${chunks.size}: $source (${text.length} chars)")
             } catch (e: Exception) {
-                log.warn("  Failed to embed chunk $source: ${e.message}")
+                log.warn("  Failed to embed chunk [$source]: ${e.message}")
             }
         }
-        log.info("Document seeding complete")
+        log.info("Document seeding complete — ${chunks.size} chunks stored")
+    }
+
+    private fun loadChunksFromDocs(): List<Pair<String, String>> {
+        val resolver = PathMatchingResourcePatternResolver()
+        val resources = resolver.getResources("classpath:docs/*.md")
+
+        return resources.flatMap { resource ->
+            val source = resource.filename?.removeSuffix(".md") ?: return@flatMap emptyList()
+            val content = resource.inputStream.bufferedReader(Charsets.UTF_8).readText()
+            val cleaned = stripMarkdown(content)
+            slidingWindowChunks(cleaned, source)
+        }
+    }
+
+    private fun stripMarkdown(content: String): String =
+        content
+            .replace(Regex("^---.*?---\\s*", RegexOption.DOT_MATCHES_ALL), "")
+            .replace(Regex("^#{1,6}\\s+.*$", RegexOption.MULTILINE), "")
+            .replace(Regex("\\n{3,}"), "\n\n")
+            .trim()
+
+    /**
+     * Sliding window chunking at sentence boundaries.
+     * Sentences are split on Korean/English period endings and newlines.
+     * Each chunk targets CHUNK_CHARS with OVERLAP_CHARS overlap from the previous chunk.
+     */
+    private fun slidingWindowChunks(text: String, source: String): List<Pair<String, String>> {
+        val sentences = text
+            .split(Regex("(?<=[.。!?\\n])\\s*"))
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+
+        val chunks = mutableListOf<Pair<String, String>>()
+        var startSentenceIdx = 0
+
+        while (startSentenceIdx < sentences.size) {
+            val sb = StringBuilder()
+            var endSentenceIdx = startSentenceIdx
+
+            // accumulate sentences until CHUNK_CHARS reached
+            while (endSentenceIdx < sentences.size && sb.length < CHUNK_CHARS) {
+                if (sb.isNotEmpty()) sb.append(" ")
+                sb.append(sentences[endSentenceIdx])
+                endSentenceIdx++
+            }
+
+            val chunkText = sb.toString().trim()
+            if (chunkText.length >= 80) {
+                chunks.add(chunkText to source)
+            }
+
+            if (endSentenceIdx >= sentences.size) break
+
+            // advance by STRIDE_CHARS worth of sentences for next chunk
+            var advancedChars = 0
+            while (startSentenceIdx < endSentenceIdx && advancedChars < STRIDE_CHARS) {
+                advancedChars += sentences[startSentenceIdx].length + 1
+                startSentenceIdx++
+            }
+            // guard against infinite loop if a single sentence exceeds CHUNK_CHARS
+            if (startSentenceIdx == 0) startSentenceIdx = endSentenceIdx
+        }
+
+        return chunks
     }
 }
