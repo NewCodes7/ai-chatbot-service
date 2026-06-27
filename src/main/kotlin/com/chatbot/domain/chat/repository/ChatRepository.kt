@@ -15,4 +15,6 @@ interface ChatRepository : JpaRepository<Chat, Long> {
         WHERE t.userId = :userId AND t.deletedAt IS NULL
     """)
     fun findLatestChatTimeByUserId(@Param("userId") userId: Long): Instant?
+
+    fun countByCreatedAtAfter(since: Instant): Long
 }
