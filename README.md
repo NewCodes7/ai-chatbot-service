@@ -40,9 +40,14 @@
 
 - [x] 내 현재 설계 문서에서 놓친 부분 있는지 AI 통해서 확인
 - [x] AI에게 현 문제 상황 인식시키기
-- [ ] 대화 기능 구현 -> 검증 
-    - [ ] 예시 문서 넣기, AI API KEY 넣기
+- [x] 대화 기능 구현 -> 검증 
+    - [x] AI API KEY 넣기
+    - [x] CLAUDE.md 업데이트 
+- [x] postgresql과 spring 띄울 수 있는 docker compose 만들기 하나의 서버에서 2개 실행되게 (시연용이니)
+    - [ ] pgvector도 지원 
+    - [ ] 예시 문서(/docs) 넣기, 예시 문서 chunking 및 embedding해서 저장 
     - [ ] 문서를 바탕으로 실제로 답변하는지 확인 
+
 - [ ] 사용자 피드백 관리 기능 구현 -> 검증 (userId는 임시로 처리해두기)
 - [ ] 분석 및 보고 기능 구현 -> 검증 
 - [ ] 사용자 관리 및 인증 기능 구현 -> 검증 
@@ -50,6 +55,56 @@
 - [ ] 프론트 통한 E2E 테스트 
 - [ ] ai 통한 전체 프로젝트 검증 
 
+
 ## 기술 스택
 
-- postgres 15.8 / kotlin 1.9.x / spring boot 3.x.x +
+- postgres 15.8 + pgvector / kotlin 1.9.25 / spring boot 3.3.6
+- Gemini API: `gemini-3.5-flash` (채팅), `gemini-embedding-2` (임베딩, 3072차원)
+- Java 21 (gradle.properties에 JAVA_HOME 설정됨)
+
+## 빌드 & 실행
+
+### Docker (시연용 — 권장)
+
+```bash
+# 1. API 키 설정
+cp .env.example .env
+# .env 파일에 GEMINI_API_KEY 입력
+
+# 2. 실행 (PostgreSQL + pgvector + 앱 한 번에)
+docker compose up --build
+
+# 종료
+docker compose down
+```
+
+### 로컬 개발
+
+```bash
+# 빌드
+./gradlew build
+
+# 실행 (PostgreSQL은 별도로 필요)
+GEMINI_API_KEY=your-key ./gradlew bootRun
+
+# 테스트
+./gradlew test
+```
+
+### 환경변수
+
+| 변수 | 기본값 | 설명 |
+|------|--------|------|
+| `GEMINI_API_KEY` | (필수) | Gemini API 키 |
+| `DB_HOST` | localhost | PostgreSQL 호스트 |
+| `DB_PORT` | 5432 | PostgreSQL 포트 |
+| `DB_NAME` | chatbot | DB 이름 |
+| `DB_USERNAME` | postgres | DB 사용자 |
+| `DB_PASSWORD` | postgres | DB 비밀번호 |
+
+### 테스트 계정 (DataSeeder 자동 생성)
+
+| 이메일 | 비밀번호 | 역할 |
+|--------|----------|------|
+| member@test.com | member1234 | MEMBER |
+| admin@test.com | admin1234 | ADMIN |
