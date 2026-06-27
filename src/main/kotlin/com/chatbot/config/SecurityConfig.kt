@@ -28,7 +28,7 @@ class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilte
             .formLogin { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { auth ->
-                auth.requestMatchers("/signup", "/login").permitAll()
+                auth.requestMatchers("/", "/app", "/feedback", "/analytics", "/signup", "/login", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                     .anyRequest().authenticated()
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)

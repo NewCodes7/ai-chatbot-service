@@ -1,3 +1,6 @@
 .agents/
 build/
 .gradle/.env
+.env
+.gradle
+.kotlin

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Chatbot Service</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="site-header">
+    <a class="brand" th:href="@{/}">AI Chatbot Service</a>
+    <nav class="nav-actions" aria-label="주요 메뉴">
+        <a class="link-button" th:href="@{/signup}">회원가입</a>
+        <a class="primary-button" th:href="@{/login}">로그인</a>
+    </nav>
+</header>
+
+<main class="main-shell">
+    <section class="hero">
+        <div class="hero-copy">
+            <p class="eyebrow">RAG 기반 금융 문서 상담 데모</p>
+            <h1>사내 문서를 이해하는 AI 챗봇 API</h1>
+            <p class="lead">
+                증권사 시연을 목표로 만든 Spring Boot 기반 AI 챗봇 서비스입니다.
+                금융 상품, 투자 기초, 시장 지표 문서를 바탕으로 질문에 답하고,
+                대화 기록과 피드백, 분석 기능으로 운영 흐름을 검증할 수 있습니다.
+            </p>
+            <div class="hero-actions">
+                <a class="primary-button large" th:href="@{/login}">로그인하고 시작하기</a>
+                <a class="secondary-button large" th:href="@{/signup}">계정 만들기</a>
+            </div>
+        </div>
+        <aside class="summary-panel" aria-label="서비스 요약">
+            <div>
+                <span class="metric">01</span>
+                <strong>문서 기반 답변</strong>
+                <p>업로드된 금융 지식 문서를 검색해 답변 생성에 활용합니다.</p>
+            </div>
+            <div>
+                <span class="metric">02</span>
+                <strong>대화 관리</strong>
+                <p>사용자별 대화 스레드와 질문, 답변 이력을 관리합니다.</p>
+            </div>
+            <div>
+                <span class="metric">03</span>
+                <strong>피드백과 분석</strong>
+                <p>답변 품질 피드백과 사용자 활동 지표를 API로 제공합니다.</p>
+            </div>
+        </aside>
+    </section>
+</main>
+</body>
+</html>

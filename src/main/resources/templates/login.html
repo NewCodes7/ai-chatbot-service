@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>로그인 | AI Chatbot Service</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="site-header">
+    <a class="brand" th:href="@{/}">AI Chatbot Service</a>
+    <nav class="nav-actions" aria-label="주요 메뉴">
+        <a class="link-button" th:href="@{/signup}">회원가입</a>
+    </nav>
+</header>
+
+<main class="auth-shell">
+    <section class="auth-card" aria-labelledby="login-title">
+        <p class="eyebrow">Welcome back</p>
+        <h1 id="login-title">로그인</h1>
+        <p class="auth-description">발급된 JWT 토큰은 브라우저에 저장됩니다. 이후 대화 화면을 붙일 때 같은 토큰을 사용합니다.</p>
+
+        <form class="auth-form" id="loginForm" novalidate>
+            <label for="email">이메일</label>
+            <input id="email" name="email" type="email" autocomplete="email" placeholder="member@test.com" required>
+
+            <label for="password">비밀번호</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="member1234" required>
+
+            <p class="form-message" id="formMessage" role="status" aria-live="polite"></p>
+            <button class="primary-button full" type="submit">로그인</button>
+        </form>
+
+        <p class="auth-switch">계정이 없나요? <a th:href="@{/signup}">회원가입</a></p>
+    </section>
+</main>
+
+<script th:src="@{/js/auth.js}"></script>
+<script>
+    window.authPage.initLogin();
+</script>
+</body>
+</html>
